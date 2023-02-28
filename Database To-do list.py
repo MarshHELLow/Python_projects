@@ -23,20 +23,25 @@ session = Session()
 today = datetime.today()
 
 
-def menu():
-    print("\n1) Today's tasks\n2) Week's tasks\n3) All tasks\n4) Add a task\n0) Exit")
+def start_menu():
+    print("\n1) Today's tasks\n2) Week's tasks\n"
+          "3) All tasks\n4) Missed tasks\n5) Add a task\n6) Delete a task\n0) Exit")
+    menu = {
+        1: today_task,
+        2: week_task,
+        3: all_task,
+        4: missed_task,
+        5: add_task,
+        6: delete_task,
+        0: exit_program,
+    }
+
     input_user = int(input())
-    if input_user == 1:
-        today_task()
-    elif input_user == 2:
-        week_task()
-    elif input_user == 3:
-        all_task()
-    elif input_user == 4:
-        add_task()
-    elif input_user == 0:
-        print("\nBye!")
-        exit()
+    if input_user in menu:
+        menu[input_user]()
+    else:
+        print("Invalid input")
+        start_menu()
 
 
 def today_task():
@@ -47,7 +52,7 @@ def today_task():
         for row in rows:
             if row.deadline == today.date():
                 print(f"{row.id}. {row.task}")
-    menu()
+    start_menu()
 
 
 def week_task():
@@ -63,7 +68,7 @@ def week_task():
             for j, task in enumerate(tasks_for_current_day):
                 print(f"{j+1}. {task.task}")
             print()
-    menu()
+    start_menu()
 
 
 def all_task():
@@ -75,7 +80,19 @@ def all_task():
         for i, task in enumerate(tasks):
             deadline_all_task = task.deadline.strftime("%#d %b")
             print(f"{i+1}. {task.task}. {deadline_all_task}")
-    menu()
+    start_menu()
+
+
+def missed_task():
+    missed_tasks = session.query(Task).filter(Task.deadline < today.date()).order_by(Task.deadline).all()
+    print("Missed tasks:")
+    if len(missed_tasks) == 0:
+        print("All tasks have been completed!")
+    else:
+        for i, task in enumerate(missed_tasks):
+            deadline_missed_task = task.deadline.strftime("%#d %b")
+            print(f"{i+1}. {task.task}. {deadline_missed_task}")
+    start_menu()
 
 
 def add_task():
@@ -83,12 +100,32 @@ def add_task():
     task_input = input()
     print("\nEnter a deadline:")
     deadline_input = input()
-    deadline = datetime.strptime(deadline_input, "%Y-%m-%d").date()
-    new_row = Task(task=task_input, deadline=deadline)
+    new_row = Task(task=task_input, deadline=datetime.strptime(deadline_input, "%Y-%m-%d").date())
     session.add(new_row)
     session.commit()
     print("\nThe task has been added!")
-    menu()
+    start_menu()
 
 
-menu()
+def delete_task():
+    tasks = session.query(Task).order_by(Task.deadline).all()
+    if len(tasks) == 0:
+        print("Nothing to delete")
+    else:
+        print("Choose the number of the task you want to delete:")
+        for i, task in enumerate(tasks):
+            deadline_all_task = task.deadline.strftime("%#d %b")
+            print(f"{i+1}. {task.task}. {deadline_all_task}")
+        task_number = int(input()) - 1
+        session.delete(tasks[task_number])
+        session.commit()
+        print("The task has been deleted!")
+    start_menu()
+
+
+def exit_program():
+    print("\nBye!")
+    exit()
+
+
+start_menu()
