@@ -1,6 +1,7 @@
 from sqlalchemy import create_engine, Column, Integer, String, Date
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
+
 from datetime import datetime, timedelta
 
 Base = declarative_base()
@@ -20,7 +21,6 @@ engine = create_engine('sqlite:///todo.db?check_same_thread=False')
 Base.metadata.create_all(engine)
 Session = sessionmaker(bind=engine)
 session = Session()
-today = datetime.today()
 
 
 def start_menu():
@@ -36,15 +36,19 @@ def start_menu():
         0: exit_program,
     }
 
-    input_user = int(input())
-    if input_user in menu:
+    try:
+        input_user = int(input())
         menu[input_user]()
-    else:
-        print("Invalid input")
+    except KeyError:
+        print("Invalid input! There is no such item on the menu.")
+        start_menu()
+    except ValueError:
+        print("Invalid input! Enter menu item number.")
         start_menu()
 
 
 def today_task():
+    today = datetime.today()
     rows = session.query(Task).all()
     if len(rows) == 0:
         print(f"Today {today.day} {today.strftime('%b')}:\nNothing to do!")
@@ -56,6 +60,7 @@ def today_task():
 
 
 def week_task():
+    today = datetime.today()
     end_of_week = today + timedelta(days=7)
     tasks = session.query(Task).filter(Task.deadline >= today.date(), Task.deadline <= end_of_week.date()).order_by(Task.deadline).all()
     for i in range(7):
@@ -84,6 +89,7 @@ def all_task():
 
 
 def missed_task():
+    today = datetime.today()
     missed_tasks = session.query(Task).filter(Task.deadline < today.date()).order_by(Task.deadline).all()
     print("Missed tasks:")
     if len(missed_tasks) == 0:
@@ -122,10 +128,17 @@ def delete_task():
         for i, task in enumerate(tasks):
             deadline_all_task = task.deadline.strftime("%#d %b")
             print(f"{i+1}. {task.task}. {deadline_all_task}")
-        task_number = int(input()) - 1
-        session.delete(tasks[task_number])
-        session.commit()
-        print("The task has been deleted!")
+        try:
+            task_number = int(input()) - 1
+            if task_number < 0 or task_number >= len(tasks):
+                raise ValueError("Invalid task number!")
+            session.delete(tasks[task_number])
+            session.commit()
+            print("The task has been deleted!")
+        except ValueError:
+            print("Invalid input! Enter a valid task number.")
+        except Exception as e:
+            print("An error occurred:", e)
     start_menu()
 
 
