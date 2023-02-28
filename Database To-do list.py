@@ -98,9 +98,15 @@ def missed_task():
 def add_task():
     print("\nEnter a task:")
     task_input = input()
-    print("\nEnter a deadline:")
-    deadline_input = input()
-    new_row = Task(task=task_input, deadline=datetime.strptime(deadline_input, "%Y-%m-%d").date())
+    print("\nEnter a deadline (YYYY-MM-DD):")
+    try:
+        deadline_input = input()
+        deadline_date = datetime.strptime(deadline_input, "%Y-%m-%d").date()
+    except ValueError:
+        print("Invalid date format! Please try again.")
+        start_menu()
+        return
+    new_row = Task(task=task_input, deadline=deadline_date)
     session.add(new_row)
     session.commit()
     print("\nThe task has been added!")
